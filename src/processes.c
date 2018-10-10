@@ -300,6 +300,7 @@ static bool report_ctx_switch;
 static bool report_fd_num;
 static bool report_maps_num;
 static bool report_delay;
+static char *procfs_prefix = NULL;
 
 #if HAVE_THREAD_INFO
 static mach_port_t port_host_self;
@@ -724,6 +725,19 @@ static int ps_config(oconfig_item_t *ci) {
       WARNING("processes plugin: The plugin has been compiled without support "
               "for the \"CollectDelayAccounting\" option.");
 #endif
+    } else if (strcasecmp(c->key, "ProcFSprefix") == 0) {
+      int status = cf_util_get_string(ci, &procfs_prefix);
+      if (status != 0) {
+        ERROR("processes plugin: Unable to read value of 'ProcFSprefix'"
+              "configuration option");
+      } else {
+        if (!access(&procfs_prefix, R_OK)) {
+          ERROR("processes plugin: Unable to read '%s' filesystem, disabling.",
+                procfs_prefix);
+          procfs_prefix = NULL;
+          continue;
+        }
+      }
     } else {
       ERROR("processes plugin: The `%s' configuration option is not "
             "understood and will be ignored.",
